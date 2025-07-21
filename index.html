@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turndaballova Ability Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Soothing & Trustworthy -->
+    <!-- Application Structure Plan: A two-column interactive dashboard. The left column contains all user inputs (player stats and formula weights) organized into cards. The right column displays the output: a live breakdown of the formula calculation and a final score gauge (donut chart). This structure creates a clear cause-and-effect relationship, allowing users to manipulate variables on the left and immediately see the results on the right, which is ideal for exploring how a formula works. The initial state is populated with the example from the source document to provide an immediate, understandable baseline. -->
+    <!-- Visualization & Content Choices: 
+        - Player Stats: Goal: Inform/Input -> Method: HTML Number Inputs -> Interaction: User typing triggers recalculation -> Justification: Standard and effective for numeric entry.
+        - Formula Weights: Goal: Inform/Input -> Method: HTML Range Sliders -> Interaction: User dragging triggers recalculation -> Justification: More intuitive than text fields for exploring the impact of a variable within a range.
+        - Final Score: Goal: Inform/Compare -> Method: Chart.js Donut Chart (as a gauge) -> Interaction: Animates on update -> Justification: A gauge provides a visually compelling and quick-to-read representation of a score out of a maximum value (10).
+        - Calculation Steps: Goal: Organize/Inform -> Method: Dynamic HTML text -> Interaction: Text updates on input change -> Justification: Clearly shows the step-by-step process of the formula, making it transparent and easy to follow. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 320px;
+        }
+    </style>
+</head>
+<body class="bg-[#F2F4F7]">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#3F5064]">Turndaballova Ability Calculator</h1>
+            <p class="mt-2 text-lg text-[#5E748C]">An interactive tool to measure a player's skill in preventing turnovers.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- Left Column: Inputs -->
+            <div class="flex flex-col gap-8">
+                
+                <!-- Player Stats Card -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-[#3F5064] mb-4 border-b pb-2">Player Statistics</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label for="sacks" class="block text-sm font-medium text-[#5E748C]">Sacks Taken (S)</label>
+                            <input type="number" id="sacks" value="35" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="interceptions" class="block text-sm font-medium text-[#5E748C]">Interceptions (I)</label>
+                            <input type="number" id="interceptions" value="18" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="int_per_attempt" class="block text-sm font-medium text-[#5E748C]">INT per Attempt (IA)</label>
+                            <input type="number" step="0.001" id="int_per_attempt" value="0.04" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="fumbles" class="block text-sm font-medium text-[#5E748C]">Fumbles (F)</label>
+                            <input type="number" id="fumbles" value="8" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="fumbles_lost" class="block text-sm font-medium text-[#5E748C]">Fumbles Lost (FL)</label>
+                            <input type="number" id="fumbles_lost" value="5" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="fumbles_per_attempt" class="block text-sm font-medium text-[#5E748C]">Fumbles per Attempt (FA)</label>
+                            <input type="number" step="0.001" id="fumbles_per_attempt" value="0.015" class="mt-1 block w-full bg-[#F2F4F7] border-transparent rounded-md shadow-sm focus:ring-[#8A9AAF] focus:border-[#8A9AAF] sm:text-sm p-2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weights Card -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-[#3F5064] mb-4 border-b pb-2">Formula Weights</h2>
+                    <p class="text-sm text-[#5E748C] mb-4">Adjust the sliders to change the importance of each statistic in the formula.</p>
+                    <div class="space-y-4">
+                        <div class="weight-slider">
+                            <label for="w_s" class="block text-sm font-medium text-[#5E748C]">Sacks Weight (<span class="font-bold text-[#3F5064]" id="w_s_val">0.5</span>)</label>
+                            <input type="range" id="w_s" min="0" max="2" step="0.05" value="0.5" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                         <div class="weight-slider">
+                            <label for="w_i" class="block text-sm font-medium text-[#5E748C]">Interceptions Weight (<span class="font-bold text-[#3F5064]" id="w_i_val">0.4</span>)</label>
+                            <input type="range" id="w_i" min="0" max="2" step="0.05" value="0.4" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div class="weight-slider">
+                            <label for="w_ia" class="block text-sm font-medium text-[#5E748C]">INT per Attempt Weight (<span class="font-bold text-[#3F5064]" id="w_ia_val">100</span>)</label>
+                            <input type="range" id="w_ia" min="0" max="200" step="1" value="100" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div class="weight-slider">
+                            <label for="w_f" class="block text-sm font-medium text-[#5E748C]">Fumbles Weight (<span class="font-bold text-[#3F5064]" id="w_f_val">0.2</span>)</label>
+                            <input type="range" id="w_f" min="0" max="2" step="0.05" value="0.2" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div class="weight-slider">
+                            <label for="w_fl" class="block text-sm font-medium text-[#5E748C]">Fumbles Lost Weight (<span class="font-bold text-[#3F5064]" id="w_fl_val">0.3</span>)</label>
+                            <input type="range" id="w_fl" min="0" max="2" step="0.05" value="0.3" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                         <div class="weight-slider">
+                            <label for="w_fa" class="block text-sm font-medium text-[#5E748C]">Fumbles per Attempt Weight (<span class="font-bold text-[#3F5064]" id="w_fa_val">50</span>)</label>
+                            <input type="range" id="w_fa" min="0" max="200" step="1" value="50" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div class="weight-slider">
+                            <label for="k_factor" class="block text-sm font-medium text-[#5E748C]">Scaling Factor (k) (<span class="font-bold text-[#3F5064]" id="k_val">0.25</span>)</label>
+                            <input type="range" id="k_factor" min="0.01" max="1" step="0.01" value="0.25" class="w-full h-2 bg-[#B6C2D9] rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="flex flex-col gap-8">
+                
+                <!-- Score Card -->
+                <div class="bg-white rounded-xl shadow-md p-6 text-center">
+                    <h2 class="text-2xl font-bold text-[#3F5064] mb-4">Final Score</h2>
+                     <div class="chart-container">
+                        <canvas id="scoreChart"></canvas>
+                        <div id="scoreText" class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-[#3F5064]"></div>
+                    </div>
+                </div>
+
+                <!-- Calculation Card -->
+                 <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-[#3F5064] mb-4 border-b pb-2">Calculation Breakdown</h2>
+                    <div class="space-y-4 text-gray-700">
+                        <div>
+                            <h3 class="font-semibold text-[#5E748C]">1. Turnover Penalty</h3>
+                            <p class="text-sm bg-[#F2F4F7] p-2 rounded-md mt-1 font-mono break-words" id="penalty_calc"></p>
+                            <p class="text-lg font-bold text-right text-red-600" id="penalty_result"></p>
+                        </div>
+                         <div>
+                            <h3 class="font-semibold text-[#5E748C]">2. Sack Bonus</h3>
+                            <p class="text-sm bg-[#F2F4F7] p-2 rounded-md mt-1 font-mono break-words" id="bonus_calc"></p>
+                            <p class="text-lg font-bold text-right text-green-600" id="bonus_result"></p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-[#5E748C]">3. Raw Score</h3>
+                             <p class="text-sm bg-[#F2F4F7] p-2 rounded-md mt-1 font-mono break-words">Raw Score = Bonus - Penalty</p>
+                            <p class="text-lg font-bold text-right text-[#3F5064]" id="raw_score_result"></p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-[#5E748C]">4. Final Scaled Score (TA)</h3>
+                             <p class="text-sm bg-[#F2F4F7] p-2 rounded-md mt-1 font-mono break-words">TA = 10 / (1 + e^(-k * Raw Score))</p>
+                            <p class="text-lg font-bold text-right text-[#3F5064]" id="final_score_calc"></p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        const statInputs = {
+            sacks: document.getElementById('sacks'),
+            interceptions: document.getElementById('interceptions'),
+            int_per_attempt: document.getElementById('int_per_attempt'),
+            fumbles: document.getElementById('fumbles'),
+            fumbles_lost: document.getElementById('fumbles_lost'),
+            fumbles_per_attempt: document.getElementById('fumbles_per_attempt'),
+        };
+
+        const weightInputs = {
+            w_s: document.getElementById('w_s'),
+            w_i: document.getElementById('w_i'),
+            w_ia: document.getElementById('w_ia'),
+            w_f: document.getElementById('w_f'),
+            w_fl: document.getElementById('w_fl'),
+            w_fa: document.getElementById('w_fa'),
+            k: document.getElementById('k_factor'),
+        };
+        
+        const weightValueDisplays = {
+            w_s: document.getElementById('w_s_val'),
+            w_i: document.getElementById('w_i_val'),
+            w_ia: document.getElementById('w_ia_val'),
+            w_f: document.getElementById('w_f_val'),
+            w_fl: document.getElementById('w_fl_val'),
+            w_fa: document.getElementById('w_fa_val'),
+            k: document.getElementById('k_val'),
+        };
+
+        const calculationOutputs = {
+            penalty_calc: document.getElementById('penalty_calc'),
+            penalty_result: document.getElementById('penalty_result'),
+            bonus_calc: document.getElementById('bonus_calc'),
+            bonus_result: document.getElementById('bonus_result'),
+            raw_score_result: document.getElementById('raw_score_result'),
+            final_score_calc: document.getElementById('final_score_calc'),
+        };
+        
+        const scoreText = document.getElementById('scoreText');
+
+        let scoreChart;
+
+        function setupChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            scoreChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Score', 'Remaining'],
+                    datasets: [{
+                        data: [0, 10],
+                        backgroundColor: ['#5E748C', '#F2F4F7'],
+                        borderColor: ['#5E748C', '#F2F4F7'],
+                        borderWidth: 1,
+                        circumference: 360,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function calculateAndRender() {
+            const stats = {};
+            for (const key in statInputs) {
+                stats[key] = parseFloat(statInputs[key].value) || 0;
+            }
+
+            const weights = {};
+            for (const key in weightInputs) {
+                weights[key] = parseFloat(weightInputs[key].value) || 0;
+            }
+            
+            for (const key in weightValueDisplays) {
+                weightValueDisplays[key].textContent = weights[key];
+            }
+
+            const penalty_i = weights.w_i * stats.interceptions;
+            const penalty_ia = weights.w_ia * stats.int_per_attempt;
+            const penalty_f = weights.w_f * stats.fumbles;
+            const penalty_fl = weights.w_fl * stats.fumbles_lost;
+            const penalty_fa = weights.w_fa * stats.fumbles_per_attempt;
+            const totalPenalty = penalty_i + penalty_ia + penalty_f + penalty_fl + penalty_fa;
+
+            const sackBonus = weights.w_s * stats.sacks;
+            
+            const rawScore = sackBonus - totalPenalty;
+
+            const finalScore = 10 / (1 + Math.exp(-weights.k * rawScore));
+
+            calculationOutputs.penalty_calc.textContent = `(${weights.w_i}*${stats.interceptions}) + (${weights.w_ia}*${stats.int_per_attempt}) + (${weights.w_f}*${stats.fumbles}) + (${weights.w_fl}*${stats.fumbles_lost}) + (${weights.w_fa}*${stats.fumbles_per_attempt})`;
+            calculationOutputs.penalty_result.textContent = `= ${totalPenalty.toFixed(2)}`;
+
+            calculationOutputs.bonus_calc.textContent = `${weights.w_s} * ${stats.sacks}`;
+            calculationOutputs.bonus_result.textContent = `= ${sackBonus.toFixed(2)}`;
+
+            calculationOutputs.raw_score_result.textContent = `${sackBonus.toFixed(2)} - ${totalPenalty.toFixed(2)} = ${rawScore.toFixed(2)}`;
+            calculationOutputs.final_score_calc.textContent = `10 / (1 + e^(-${weights.k} * ${rawScore.toFixed(2)})) = ${finalScore.toFixed(2)}`;
+            
+            scoreText.textContent = finalScore.toFixed(2);
+            scoreChart.data.datasets[0].data[0] = finalScore;
+            scoreChart.data.datasets[0].data[1] = 10 - finalScore;
+            
+            const scoreColor = finalScore > 7 ? '#3a9a78' : finalScore > 4 ? '#8A9AAF' : '#c46262';
+            scoreChart.data.datasets[0].backgroundColor[0] = scoreColor;
+            scoreChart.data.datasets[0].borderColor[0] = scoreColor;
+
+            scoreChart.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupChart();
+            
+            Object.values(statInputs).forEach(input => input.addEventListener('input', calculateAndRender));
+            Object.values(weightInputs).forEach(input => input.addEventListener('input', calculateAndRender));
+            
+            calculateAndRender();
+        });
+
+    </script>
+</body>
+</html>
